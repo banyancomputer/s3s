@@ -30,3 +30,9 @@ impl Response {
         }
     }
 }
+
+impl From<Response> for worker::Response {
+    fn from(res: Response) -> Self {
+        todo!("Response -> worker::Response")
+    }
+}

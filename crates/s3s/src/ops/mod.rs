@@ -28,15 +28,15 @@ use std::mem;
 use std::ops::Not;
 use std::sync::Arc;
 
+use crate::http::StatusCode;
 use bytes::Bytes;
 use bytestring::ByteString;
 use hyper::http::HeaderValue;
 use hyper::HeaderMap;
-use hyper::Method;
-use hyper::StatusCode;
 use hyper::Uri;
 use mime::Mime;
 use tracing::debug;
+use worker::Method;
 
 #[async_trait::async_trait]
 pub trait Operation: Send + Sync + 'static {
@@ -296,7 +296,7 @@ async fn prepare(req: &mut Request, auth: Option<&dyn S3Auth>, base_domain: Opti
 
     let (op, needs_full_body) = 'resolve: {
         if let Some(multipart) = &mut req.s3ext.multipart {
-            if req.method == Method::POST {
+            if req.method == Method::Post {
                 match s3_path {
                     S3Path::Root => return Err(unknown_operation()),
                     S3Path::Bucket { .. } => {
@@ -372,7 +372,7 @@ impl SignatureContext<'_> {
     #[tracing::instrument(skip(self))]
     async fn v4_check(&mut self) -> Option<S3Result<Credentials>> {
         // POST auth
-        if self.req_method == Method::POST {
+        if *self.req_method == Method::Post {
             if let Some(ref mime) = self.mime {
                 if mime.type_() == mime::MULTIPART && mime.subtype() == mime::FORM_DATA {
                     debug!("checking post signature");
@@ -533,7 +533,7 @@ impl SignatureContext<'_> {
             let canonical_request = if is_stream {
                 let payload = sig_v4::Payload::MultipleChunks;
                 sig_v4::create_canonical_request(method, uri_path, query_strings, &headers, payload)
-            } else if matches!(*self.req_method, Method::GET | Method::HEAD) {
+            } else if matches!(*self.req_method, Method::Get | Method::Head) {
                 let payload = sig_v4::Payload::Empty;
                 sig_v4::create_canonical_request(method, uri_path, query_strings, &headers, payload)
             } else {

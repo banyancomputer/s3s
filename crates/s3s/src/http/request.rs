@@ -9,8 +9,8 @@ use crate::stream::VecByteStream;
 use hyper::http::Extensions;
 use hyper::http::HeaderValue;
 use hyper::HeaderMap;
-use hyper::Method;
 use hyper::Uri;
+use worker::Method;
 
 pub struct Request {
     pub method: Method,
@@ -32,16 +32,22 @@ pub(crate) struct S3Extensions {
     pub credentials: Option<Credentials>,
 }
 
-impl From<hyper::Request<Body>> for Request {
-    fn from(req: hyper::Request<Body>) -> Self {
-        let (parts, body) = req.into_parts();
-        Self {
-            method: parts.method,
-            uri: parts.uri,
-            headers: parts.headers,
-            extensions: parts.extensions,
-            body,
-            s3ext: S3Extensions::default(),
-        }
+// impl From<hyper::Request<Body>> for Request {
+//     fn from(req: hyper::Request<Body>) -> Self {
+//         let (parts, body) = req.into_parts();
+//         Self {
+//             method: parts.method,
+//             uri: parts.uri,
+//             headers: parts.headers,
+//             extensions: parts.extensions,
+//             body,
+//             s3ext: S3Extensions::default(),
+//         }
+//     }
+// }
+
+impl From<worker::Request> for Request {
+    fn from(req: worker::Request) -> Self {
+        todo!("worker::Request -> Request")
     }
 }

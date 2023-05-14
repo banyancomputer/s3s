@@ -6,7 +6,7 @@ use crate::utils::hmac_sha1;
 
 use std::ops::Not;
 
-use hyper::Method;
+use worker::Method;
 
 fn base64(data: impl AsRef<[u8]>) -> String {
     base64_simd::STANDARD.encode_to_string(data)
@@ -55,7 +55,7 @@ pub fn create_string_to_sign(
 
     {
         // {HTTP-Verb}\n
-        ans.push_str(method.as_str());
+        ans.push_str(&method.to_string());
         ans.push('\n');
     }
 
@@ -174,7 +174,7 @@ mod tests {
 
         {
             // Object GET
-            let method = &Method::GET;
+            let method = &Method::Get;
             let s3_path = S3Path::object("awsexamplebucket1", "photos/puppy.jpg");
             let date = "Tue, 27 Mar 2007 19:36:42 +0000";
             let headers = OrderedHeaders::default();
@@ -199,7 +199,7 @@ mod tests {
 
         {
             // Object PUT
-            let method = &Method::PUT;
+            let method = &Method::Put;
             let s3_path = S3Path::object("awsexamplebucket1", "photos/puppy.jpg");
             let date = "Tue, 27 Mar 2007 21:15:45 +0000";
             let headers = OrderedHeaders::from_slice_unchecked(&[("content-type", "image/jpeg")]);
@@ -224,7 +224,7 @@ mod tests {
 
         {
             // List
-            let method = &Method::GET;
+            let method = &Method::Get;
             let s3_path = S3Path::bucket("awsexamplebucket1");
             let date = "Tue, 27 Mar 2007 19:42:41 +0000";
             let headers = OrderedHeaders::default();
@@ -249,7 +249,7 @@ mod tests {
 
         {
             // Fetch
-            let method = &Method::GET;
+            let method = &Method::Get;
             let s3_path = S3Path::bucket("awsexamplebucket1");
             let date = "Tue, 27 Mar 2007 19:44:46 +0000";
             let qs = OrderedQs::from_vec_unchecked(vec![("acl".into(), String::new())]);
@@ -274,7 +274,7 @@ mod tests {
 
         {
             // Delete
-            let method = &Method::DELETE;
+            let method = &Method::Delete;
             let s3_path = S3Path::object("awsexamplebucket1", "photos/puppy.jpg");
             let headers = OrderedHeaders::from_slice_unchecked(&[
                 ("date", "Tue, 27 Mar 2007 21:20:27 +0000"),
@@ -302,7 +302,7 @@ mod tests {
 
         {
             // Upload
-            let method = &Method::PUT;
+            let method = &Method::Put;
             let s3_path = S3Path::object("static.example.com", "db-backup.dat.gz");
             let headers = OrderedHeaders::from_slice_unchecked(&[
                 ("date", "Tue, 27 Mar 2007 21:06:08 +0000"),
@@ -344,7 +344,7 @@ mod tests {
 
         {
             // List all my buckets
-            let method = &Method::GET;
+            let method = &Method::Get;
             let s3_path = S3Path::Root;
             let headers = OrderedHeaders::from_slice_unchecked(&[("date", "Wed, 28 Mar 2007 01:29:59 +0000")]);
             let qs = None;
@@ -369,7 +369,7 @@ mod tests {
 
         {
             // Unicode keys
-            let method = &Method::GET;
+            let method = &Method::Get;
             let uri_s3_path = crate::path::parse_path_style("/dictionary/fran%C3%A7ais/pr%c3%a9f%c3%a8re").unwrap();
             let headers = OrderedHeaders::from_slice_unchecked(&[("date", "Wed, 28 Mar 2007 01:49:49 +0000")]);
             let qs = None;
@@ -394,7 +394,7 @@ mod tests {
 
         {
             // Query string request authentication
-            let method = &Method::GET;
+            let method = &Method::Get;
             let s3_path = S3Path::object("awsexamplebucket1", "photos/puppy.jpg");
             let headers = OrderedHeaders::default();
             let qs = OrderedQs::parse(concat!(

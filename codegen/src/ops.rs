@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::format as f;
 use std::ops::Not;
 
-use heck::ToSnakeCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 
 #[derive(Debug)]
 pub struct Operation {
@@ -783,7 +783,8 @@ fn codegen_router(ops: &Operations, rust_types: &RustTypes) {
 
     g!("match req.method {{");
     for &method in &methods {
-        g!("hyper::Method::{method} => match s3_path {{");
+        let method_capitalized = (method).to_upper_camel_case();
+        g!("worker::Method::{method_capitalized} => match s3_path {{");
 
         for pattern in [PathPattern::Root, PathPattern::Bucket, PathPattern::Object] {
             let s3_path_pattern = match pattern {

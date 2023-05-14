@@ -12,9 +12,9 @@ use std::mem::MaybeUninit;
 
 use hex_simd::{AsOut, AsciiCase};
 use hyper::body::Bytes;
-use hyper::Method;
 use sha2::{Digest, Sha256};
 use smallvec::SmallVec;
+use worker::Method;
 use zeroize::Zeroize;
 
 /// `f(hex(src))`
@@ -125,7 +125,7 @@ pub fn create_canonical_request(
 
     {
         // <HTTPMethod>\n
-        ans.push_str(method.as_str());
+        ans.push_str(&method.as_ref());
         ans.push('\n');
     }
 
@@ -323,7 +323,7 @@ pub fn create_presigned_canonical_request(
     let mut ans = String::with_capacity(256);
     {
         // <HTTPMethod>\n
-        ans.push_str(method.as_str());
+        ans.push_str(&method.to_string());
         ans.push('\n');
     }
     {
@@ -426,7 +426,7 @@ mod tests {
             ("x-amz-date", "20130524T000000Z"),
         ]);
 
-        let method = Method::GET;
+        let method = Method::Get;
         let qs: &[(String, String)] = &[];
 
         let canonical_request = create_canonical_request(&method, path, qs, &headers, Payload::Empty);
@@ -480,7 +480,7 @@ mod tests {
             ("x-amz-storage-class", "REDUCED_REDUNDANCY"),
         ]);
 
-        let method = Method::PUT;
+        let method = Method::Put;
         let payload = "Welcome to Amazon S3.";
         let qs: &[(String, String)] = &[];
 
@@ -538,7 +538,7 @@ mod tests {
             ("x-amz-storage-class", "REDUCED_REDUNDANCY"),
         ]);
 
-        let method = Method::PUT;
+        let method = Method::Put;
         let qs: &[(String, String)] = &[];
 
         let canonical_request = create_canonical_request(&method, path, qs, &headers, Payload::MultipleChunks);
@@ -655,7 +655,7 @@ mod tests {
 
         let query_strings = &[("lifecycle", "")];
 
-        let method = Method::GET;
+        let method = Method::Get;
 
         let canonical_request = create_canonical_request(&method, path, query_strings, &headers, Payload::Empty);
         assert_eq!(
@@ -706,7 +706,7 @@ mod tests {
 
         let query_strings = &[("max-keys", "2"), ("prefix", "J")];
 
-        let method = Method::GET;
+        let method = Method::Get;
 
         let canonical_request = create_canonical_request(&method, path, query_strings, &headers, Payload::Empty);
 
@@ -748,7 +748,7 @@ mod tests {
         // let access_key_id = "AKIAIOSFODNN7EXAMPLE";
         let secret_access_key = SecretKey::from("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY");
 
-        let method = Method::GET;
+        let method = Method::Get;
 
         let uri = Uri::from_static(concat!(
             "https://s3.amazonaws.com/test.txt",
@@ -808,9 +808,9 @@ mod tests {
         use hyper::header::HeaderName;
         use hyper::header::HeaderValue;
 
-        let mut req = hyper::Request::<hyper::body::Bytes>::default();
+        let mut req = worker::Request::default();
 
-        *req.method_mut() = Method::GET;
+        *req.method_mut() = Method::Get;
         *req.uri_mut() = hyper::Uri::from_static("http://localhost:8014/minio-java-test-1gqr1v4?prefix=prefix&suffix=suffix&events=s3%3AObjectCreated%3A%2A&events=s3%3AObjectAccessed%3A%2A");
 
         let x_amz_date = "20230204T155111Z";

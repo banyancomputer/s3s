@@ -5337,12 +5337,12 @@ pub fn resolve_route(
     qs: Option<&http::OrderedQs>,
 ) -> S3Result<(&'static dyn super::Operation, bool)> {
     match req.method {
-        hyper::Method::HEAD => match s3_path {
+        worker::Method::Head => match s3_path {
             S3Path::Root => Err(super::unknown_operation()),
             S3Path::Bucket { .. } => Ok((&HeadBucket as &'static dyn super::Operation, false)),
             S3Path::Object { .. } => Ok((&HeadObject as &'static dyn super::Operation, false)),
         },
-        hyper::Method::GET => match s3_path {
+        worker::Method::Get => match s3_path {
             S3Path::Root => Ok((&ListBuckets as &'static dyn super::Operation, false)),
             S3Path::Bucket { .. } => {
                 if let Some(qs) = qs {
@@ -5465,7 +5465,7 @@ pub fn resolve_route(
                 Ok((&GetObject as &'static dyn super::Operation, false))
             }
         },
-        hyper::Method::POST => match s3_path {
+        worker::Method::Post => match s3_path {
             S3Path::Root => Err(super::unknown_operation()),
             S3Path::Bucket { .. } => {
                 if let Some(qs) = qs {
@@ -5498,7 +5498,7 @@ pub fn resolve_route(
                 Err(super::unknown_operation())
             }
         },
-        hyper::Method::PUT => match s3_path {
+        worker::Method::Put => match s3_path {
             S3Path::Root => Err(super::unknown_operation()),
             S3Path::Bucket { .. } => {
                 if let Some(qs) = qs {
@@ -5596,7 +5596,7 @@ pub fn resolve_route(
                 Ok((&PutObject as &'static dyn super::Operation, false))
             }
         },
-        hyper::Method::DELETE => match s3_path {
+        worker::Method::Delete => match s3_path {
             S3Path::Root => Err(super::unknown_operation()),
             S3Path::Bucket { .. } => {
                 if let Some(qs) = qs {
