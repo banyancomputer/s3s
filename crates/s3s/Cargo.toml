@@ -45,7 +45,9 @@ tracing = "0.1.37"
 transform-stream = "0.3.0"
 urlencoding = "2.1.2"
 zeroize = "1.6.0"
+web-sys = "0.3.54"
 worker = "0.0.16"
+wasm-streams = "0.3.0"
 
 [dev-dependencies]
 tokio = { version = "1.28.0", features = ["full"] }

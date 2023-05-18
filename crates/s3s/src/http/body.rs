@@ -1,6 +1,5 @@
 use crate::error::StdError;
 use crate::stream::ByteStream;
-use crate::stream::DynByteStream;
 use crate::stream::RemainingLength;
 
 use std::fmt;
@@ -29,13 +28,9 @@ pin_project_lite::pin_project! {
         Once {
             inner: Bytes,
         },
-        Hyper {
+        ByteStream {
             #[pin]
-            inner: hyper::Body,
-        },
-        DynStream {
-            #[pin]
-            inner: DynByteStream
+            inner: Pin<Box<worker::ByteStream>>,
         }
     }
 }
@@ -52,15 +47,9 @@ impl Body {
         }
     }
 
-    fn hyper(body: hyper::Body) -> Self {
+    fn stream(stream: worker::ByteStream) -> Self {
         Self {
-            kind: Kind::Hyper { inner: body },
-        }
-    }
-
-    fn dyn_stream(stream: DynByteStream) -> Self {
-        Self {
-            kind: Kind::DynStream { inner: stream },
+            kind: Kind::ByteStream { inner: Box::pin(stream) },
         }
     }
 }
@@ -83,22 +72,17 @@ impl From<String> for Body {
     }
 }
 
-impl From<hyper::Body> for Body {
-    fn from(body: hyper::Body) -> Self {
-        Self::hyper(body)
-    }
-}
-
-impl From<DynByteStream> for Body {
-    fn from(stream: DynByteStream) -> Self {
-        Self::dyn_stream(stream)
-    }
-}
+// mess...
+// impl<s: From<impl Stream<Item=Bytes>> for Body {
+//     fn from(stream: impl Stream<Item=Bytes>) -> Self {
+//         Self::stream(stream)
+//     }
+// }
 
 impl http_body::Body for Body {
     type Data = Bytes;
 
-    type Error = StdError;
+    type Error = worker::Error;
 
     fn poll_data(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Self::Data, Self::Error>>> {
         let mut this = self.project();
@@ -115,14 +99,24 @@ impl http_body::Body for Body {
                     Poll::Ready(Some(Ok(bytes)))
                 }
             }
-            KindProj::Hyper { inner } => {
-                http_body::Body::poll_data(inner, cx).map_err(|e| Box::new(e) as StdError)
-                //
-            }
-            KindProj::DynStream { inner } => {
-                Stream::poll_next(inner, cx)
-                //
-            }
+            KindProj::ByteStream { mut inner } => {
+                let polled = {inner.as_mut().poll_next(cx)};
+                match polled {
+                    Poll::Ready(Some(Ok(value))) => {
+                        let bytes = Bytes::from(value);
+                        Poll::Ready(Some(Ok(bytes)))
+                    }
+                    Poll::Ready(Some(Err(err))) => {
+                        Poll::Ready(Some(Err(err)))
+                    }
+                    Poll::Ready(None) => {
+                        Poll::Ready(None)
+                    }
+                    Poll::Pending => {
+                        Poll::Pending
+                    }
+                }
+            }     
         }
     }
 
@@ -134,8 +128,8 @@ impl http_body::Body for Body {
         match &self.kind {
             Kind::Empty => true,
             Kind::Once { inner } => inner.is_empty(),
-            Kind::Hyper { inner } => http_body::Body::is_end_stream(inner),
-            Kind::DynStream { inner } => inner.remaining_length().exact() == Some(0),
+            // TODO is this correct
+            Kind::ByteStream { inner } => inner.size_hint().1.map_or(false, |v| v == 0),
         }
     }
 
@@ -143,14 +137,19 @@ impl http_body::Body for Body {
         match &self.kind {
             Kind::Empty => http_body::SizeHint::with_exact(0),
             Kind::Once { inner } => http_body::SizeHint::with_exact(inner.len() as u64),
-            Kind::Hyper { inner } => http_body::Body::size_hint(inner),
-            Kind::DynStream { inner } => inner.remaining_length().into(),
+            Kind::ByteStream { inner } => {
+                let (lower,upper) = inner.size_hint();
+                http_body::SizeHint {
+                    upper: upper.map(|v| v as u64),
+                    lower: lower as u64,
+                }
+            }
         }
     }
 }
 
 impl Stream for Body {
-    type Item = Result<Bytes, StdError>;
+    type Item = Result<Bytes, worker::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         http_body::Body::poll_data(self, cx)
@@ -159,12 +158,7 @@ impl Stream for Body {
 
 impl ByteStream for Body {
     fn remaining_length(&self) -> RemainingLength {
-        match &self.kind {
-            Kind::Empty => RemainingLength::new_exact(0),
-            Kind::Once { inner } => RemainingLength::new_exact(inner.len()),
-            Kind::Hyper { inner } => http_body::Body::size_hint(inner).into(),
-            Kind::DynStream { inner } => inner.remaining_length(),
-        }
+        RemainingLength::from(http_body::Body::size_hint(self))
     }
 }
 
@@ -176,12 +170,9 @@ impl fmt::Debug for Body {
             Kind::Once { inner } => {
                 d.field("once", inner);
             }
-            Kind::Hyper { inner } => {
-                d.field("hyper", inner);
-            }
-            Kind::DynStream { inner } => {
+            Kind::ByteStream { inner } => {
                 d.field("dyn_stream", &"{..}");
-                d.field("remaining_length", &inner.remaining_length());
+                d.field("remaining_length", &self.remaining_length());
             }
         }
         d.finish()
@@ -213,18 +204,17 @@ impl Body {
         }
     }
 
-    fn into_hyper(self) -> hyper::Body {
-        match self.kind {
-            Kind::Empty => hyper::Body::empty(),
-            Kind::Once { inner } => inner.into(),
-            Kind::Hyper { inner } => inner,
-            Kind::DynStream { inner } => hyper::Body::wrap_stream(inner),
-        }
-    }
+    // fn into_writable_stream(&self) -> web_sys::WritableStream {
+    //     match self.kind {
+    //         Kind::Empty => Stream<Item=Bytes>::empty().into(),
+    //         Kind::Once { inner } => inner.into(),
+    //         Kind::ReadableStream { inner } => todo!("ReadableStream -> WritableStream"),
+    //     }
+    // }
 }
 
-impl From<Body> for hyper::Body {
-    fn from(value: Body) -> Self {
-        value.into_hyper()
-    }
-}
+// impl From<Body> for WritableStream {
+//     fn from(body: Body) -> Self {
+//         body.into_writable_stream()
+//     }
+// }

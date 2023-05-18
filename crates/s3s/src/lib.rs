@@ -1,5 +1,5 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![forbid(unsafe_code)]
+//#![forbid(unsafe_code)]
 #![deny(
     clippy::all, //
     clippy::cargo, //

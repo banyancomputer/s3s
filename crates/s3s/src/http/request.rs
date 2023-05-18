@@ -48,6 +48,7 @@ pub(crate) struct S3Extensions {
 
 impl From<worker::Request> for Request {
     fn from(req: worker::Request) -> Self {
+        // THIS IS WHERE YOU NEED TO PULL THE BODY OUT OF THE REQUEST AND LOCK IT UP IN A STREAM :)
         todo!("worker::Request -> Request")
     }
 }
