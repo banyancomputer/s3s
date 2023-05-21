@@ -1,6 +1,5 @@
-use crate::error::StdError;
-use crate::stream::ByteStream;
-use crate::stream::RemainingLength;
+//use crate::stream::ByteStream;
+//use crate::stream::RemainingLength;
 
 use std::fmt;
 use std::mem;
@@ -156,11 +155,11 @@ impl Stream for Body {
     }
 }
 
-impl ByteStream for Body {
-    fn remaining_length(&self) -> RemainingLength {
-        RemainingLength::from(http_body::Body::size_hint(self))
-    }
-}
+// impl ByteStream for Body {
+//     fn remaining_length(&self) -> RemainingLength {
+//         RemainingLength::from(http_body::Body::size_hint(self))
+//     }
+// }
 
 impl fmt::Debug for Body {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -172,7 +171,7 @@ impl fmt::Debug for Body {
             }
             Kind::ByteStream { inner } => {
                 d.field("dyn_stream", &"{..}");
-                d.field("remaining_length", &self.remaining_length());
+                d.field("size_hint", &self.size_hint());
             }
         }
         d.finish()
@@ -186,7 +185,7 @@ impl Body {
     ///
     /// # Errors
     /// Returns an error if `hyper` fails to read the body.
-    pub async fn store_all_unlimited(&mut self) -> Result<Bytes, StdError> {
+    pub async fn store_all_unlimited(&mut self) -> Result<Bytes, worker::Error> {
         if let Some(bytes) = self.bytes() {
             return Ok(bytes);
         }

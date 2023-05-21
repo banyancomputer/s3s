@@ -4,7 +4,7 @@
 //!
 
 use crate::error::StdError;
-use crate::stream::ByteStream;
+//use crate::stream::ByteStream;
 use crate::utils::SyncBoxFuture;
 
 use std::fmt::{self, Debug};
@@ -355,11 +355,11 @@ impl Stream for FileStream {
     }
 }
 
-impl ByteStream for FileStream {
-    fn remaining_length(&self) -> crate::stream::RemainingLength {
-        crate::stream::RemainingLength::unknown()
-    }
-}
+// impl ByteStream for FileStream {
+//     fn remaining_length(&self) -> crate::stream::RemainingLength {
+//         crate::stream::RemainingLength::unknown()
+//     }
+// }
 
 /// CRLF lines
 struct CrlfLines<'a> {

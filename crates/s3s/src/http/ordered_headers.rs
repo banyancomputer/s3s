@@ -1,10 +1,6 @@
 //! Ordered headers
 
 use hyper::header::ToStrError;
-use hyper::http::HeaderValue;
-use hyper::HeaderMap;
-
-use crate::utils::stable_sort_by_first;
 
 /// Immutable http header container
 #[derive(Debug, Default)]
@@ -21,6 +17,8 @@ impl<'a> OrderedHeaders<'a> {
     #[cfg(test)]
     #[must_use]
     pub fn from_slice_unchecked(slice: &[(&'a str, &'a str)]) -> Self {
+        use crate::utils::stable_sort_by_first;
+
         for (name, _) in slice {
             let is_valid = |c: u8| c == b'-' || c.is_ascii_lowercase() || c.is_ascii_digit();
             assert!(name.as_bytes().iter().copied().all(is_valid));
@@ -35,15 +33,16 @@ impl<'a> OrderedHeaders<'a> {
     ///
     /// # Errors
     /// Returns [`ToStrError`] if header value cannot be converted to string slice
-    pub fn from_headers(map: &'a HeaderMap<HeaderValue>) -> Result<Self, ToStrError> {
-        let mut headers: Vec<(&'a str, &'a str)> = Vec::with_capacity(map.len());
+    pub fn from_headers(map: &'a worker::Headers)-> Result<Self, ToStrError> {
+        // let mut headers: Vec<(&'a str, &'a str)> = Vec::with_capacity(map.len());
 
-        for (name, value) in map.iter() {
-            headers.push((name.as_str(), value.to_str()?));
-        }
-        stable_sort_by_first(&mut headers);
+        // for (name, value) in map.iter() {
+        //     headers.push((name.as_str(), value.to_str()?));
+        // }
+        // stable_sort_by_first(&mut headers);
 
-        Ok(Self { headers })
+        // Ok(Self { headers })
+        unimplemented!("from_headers")
     }
 
     fn get_all_pairs(&self, name: &str) -> impl Iterator<Item = (&'a str, &'a str)> + '_ {

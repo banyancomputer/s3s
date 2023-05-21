@@ -21,6 +21,19 @@ pub struct Request {
     pub(crate) s3ext: S3Extensions,
 }
 
+impl Default for Request {
+    fn default() -> Self {
+        Self {
+            method: Method::Get,
+            uri: Uri::default(),
+            headers: HeaderMap::default(),
+            extensions: Extensions::default(),
+            body: Body::default(),
+            s3ext: S3Extensions::default(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct S3Extensions {
     pub s3_path: Option<S3Path>,

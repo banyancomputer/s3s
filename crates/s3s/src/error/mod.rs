@@ -11,7 +11,7 @@ use std::str::FromStr;
 
 use hyper::StatusCode;
 
-pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
+pub type StdError = Box<dyn std::error::Error + 'static>;
 
 pub type S3Result<T = (), E = S3Error> = std::result::Result<T, E>;
 
@@ -91,7 +91,7 @@ impl S3Error {
     }
 
     #[must_use]
-    pub fn source(&self) -> Option<&(dyn std::error::Error + Send + Sync + 'static)> {
+    pub fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         self.0.source.as_deref()
     }
 

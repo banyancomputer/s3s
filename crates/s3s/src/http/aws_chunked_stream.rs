@@ -4,7 +4,7 @@ use crate::auth::SecretKey;
 use crate::error::StdError;
 use crate::sig_v4;
 use crate::sig_v4::AmzDate;
-use crate::stream::{ByteStream, DynByteStream, RemainingLength};
+//use crate::stream::{ByteStream, DynByteStream, RemainingLength};
 use crate::utils::SyncBoxFuture;
 
 use std::convert::TryInto;
@@ -17,6 +17,7 @@ use futures::stream::{Stream, StreamExt};
 use hyper::body::{Buf, Bytes};
 use memchr::memchr;
 use transform_stream::AsyncTryStream;
+use worker::ByteStream;
 
 /// Aws chunked stream
 pub struct AwsChunkedStream {
@@ -293,9 +294,9 @@ impl AwsChunkedStream {
         self.remaining_length
     }
 
-    pub fn into_byte_stream(self) -> DynByteStream {
-        crate::stream::into_dyn(self)
-    }
+    // pub fn into_byte_stream(self) -> ByteStream {
+    //     crate::stream::into_dyn(self)
+    // }
 }
 
 impl Stream for AwsChunkedStream {
@@ -310,11 +311,11 @@ impl Stream for AwsChunkedStream {
     }
 }
 
-impl ByteStream for AwsChunkedStream {
-    fn remaining_length(&self) -> RemainingLength {
-        RemainingLength::new_exact(self.remaining_length)
-    }
-}
+// impl ByteStream for AwsChunkedStream {
+//     fn remaining_length(&self) -> RemainingLength {
+//         RemainingLength::new_exact(self.remaining_length)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

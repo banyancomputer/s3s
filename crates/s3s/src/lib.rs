@@ -37,7 +37,7 @@ pub mod auth;
 pub mod dto;
 pub mod path;
 pub mod service;
-pub mod stream;
+//pub mod stream;
 
 pub use self::error::*;
 pub use self::http::Body;

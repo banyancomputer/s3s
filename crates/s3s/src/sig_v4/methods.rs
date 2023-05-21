@@ -805,14 +805,10 @@ mod tests {
 
     #[test]
     fn special_20230204() {
-        use hyper::header::HeaderName;
-        use hyper::header::HeaderValue;
+        let uri = "http://localhost:8014/minio-java-test-1gqr1v4?prefix=prefix&suffix=suffix&events=s3%3AObjectCreated%3A%2A&events=s3%3AObjectAccessed%3A%2A";
+        let mut req = worker::Request::new(uri, Method::Get).unwrap();
 
-        let mut req = worker::Request::default();
-
-        *req.method_mut() = Method::Get;
-        *req.uri_mut() = hyper::Uri::from_static("http://localhost:8014/minio-java-test-1gqr1v4?prefix=prefix&suffix=suffix&events=s3%3AObjectCreated%3A%2A&events=s3%3AObjectAccessed%3A%2A");
-
+        
         let x_amz_date = "20230204T155111Z";
         let headers = [
             ("content-md5", "1B2M2Y8AsgTpgAmY7PhCfg=="),
@@ -821,8 +817,8 @@ mod tests {
             ("x-amz-date", x_amz_date),
         ];
         for (name, value) in &headers {
-            req.headers_mut()
-                .insert(HeaderName::from_static(name), HeaderValue::from_static(value));
+            req.headers_mut().unwrap()
+                .set(name, value);
         }
 
         let signed_header_names = &["content-md5", "host", "x-amz-content-sha256", "x-amz-date"];
@@ -834,15 +830,15 @@ mod tests {
         let secret_access_key = SecretKey::from("minioadmin");
 
         {
-            let uri_path = req.uri().path();
-            let qs = req.uri().query().map(|q| OrderedQs::parse(q).unwrap());
+            let uri_path = req.url().unwrap().path();
+            let qs = req.url().unwrap().query().map(|q| OrderedQs::parse(q).unwrap());
             let query_strings: &[_] = qs.as_ref().map_or(&[], |x| x.as_ref());
 
             let signed_headers = OrderedHeaders::from_headers(req.headers())
                 .unwrap()
                 .find_multiple(signed_header_names);
 
-            let canonical_request = create_canonical_request(req.method(), uri_path, query_strings, &signed_headers, payload);
+            let canonical_request = create_canonical_request(&req.method(), uri_path, query_strings, &signed_headers, payload);
 
             let string_to_sign = create_string_to_sign(&canonical_request, &date, region);
 

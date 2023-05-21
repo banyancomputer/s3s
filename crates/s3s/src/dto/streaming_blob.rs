@@ -2,7 +2,6 @@
 
 use crate::error::StdError;
 use crate::http::Body;
-use crate::stream::*;
 
 use std::fmt;
 use std::pin::Pin;
@@ -10,28 +9,28 @@ use std::task::{Context, Poll};
 
 use futures::Stream;
 use hyper::body::Bytes;
+use worker::ByteStream;
 
 pub struct StreamingBlob {
-    inner: DynByteStream,
+    inner: Pin<Box<ByteStream>>,
 }
 
 impl StreamingBlob {
-    pub fn new<S>(stream: S) -> Self
+    pub fn new(stream: ByteStream) -> Self
     where
-        S: ByteStream<Item = Result<Bytes, StdError>> + Send + Sync + 'static,
     {
         Self { inner: Box::pin(stream) }
     }
 
-    pub fn wrap<S, E>(stream: S) -> Self
-    where
-        S: Stream<Item = Result<Bytes, E>> + Send + Sync + 'static,
-        E: std::error::Error + Send + Sync + 'static,
-    {
-        Self { inner: wrap(stream) }
-    }
+    // pub fn wrap<S, E>(stream: S) -> Self
+    // where
+    //     S: Stream<Item = Result<Bytes, E>> + Send + Sync + 'static,
+    //     E: std::error::Error + Send + Sync + 'static,
+    // {
+    //     Self { inner: wrap(stream) }
+    // }
 
-    fn into_inner(self) -> DynByteStream {
+    fn into_inner(self) -> ByteStream {
         self.inner
     }
 }
@@ -56,20 +55,20 @@ impl Stream for StreamingBlob {
     }
 }
 
-impl ByteStream for StreamingBlob {
-    fn remaining_length(&self) -> RemainingLength {
-        self.inner.remaining_length()
-    }
-}
+// impl ByteStream for StreamingBlob {
+//     fn remaining_length(&self) -> RemainingLength {
+//         self.inner.remaining_length()
+//     }
+// }
 
-impl From<StreamingBlob> for DynByteStream {
+impl From<StreamingBlob> for ByteStream {
     fn from(value: StreamingBlob) -> Self {
         value.into_inner()
     }
 }
 
-impl From<DynByteStream> for StreamingBlob {
-    fn from(value: DynByteStream) -> Self {
+impl From<ByteStream> for StreamingBlob {
+    fn from(value: ByteStream) -> Self {
         Self { inner: value }
     }
 }
@@ -110,18 +109,18 @@ where
     }
 }
 
-impl<S> ByteStream for StreamWrapper<S>
-where
-    StreamWrapper<S>: Stream<Item = Result<Bytes, StdError>>,
-{
-    fn remaining_length(&self) -> RemainingLength {
-        RemainingLength::unknown()
-    }
-}
+// impl<S> ByteStream for StreamWrapper<S>
+// where
+//     StreamWrapper<S>: Stream<Item = Result<Bytes, StdError>>,
+// {
+//     fn remaining_length(&self) -> RemainingLength {
+//         RemainingLength::unknown()
+//     }
+// }
 
-fn wrap<S>(inner: S) -> DynByteStream
-where
-    StreamWrapper<S>: ByteStream<Item = Result<Bytes, StdError>> + Send + Sync + 'static,
-{
-    Box::pin(StreamWrapper { inner })
-}
+// fn wrap<S>(inner: S) -> DynByteStream
+// where
+//     StreamWrapper<S>: ByteStream + Send + Sync + 'static,
+// {
+//     Box::pin(StreamWrapper { inner })
+// }

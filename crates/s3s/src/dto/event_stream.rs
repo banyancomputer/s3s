@@ -1,8 +1,6 @@
 use super::SelectObjectContentEvent;
 use super::{ContinuationEvent, EndEvent, ProgressEvent, RecordsEvent, StatsEvent};
 
-use crate::stream::ByteStream;
-use crate::stream::DynByteStream;
 use crate::S3Error;
 use crate::S3Result;
 use crate::StdError;
@@ -33,8 +31,8 @@ impl SelectObjectContentEventStream {
     }
 
     #[must_use]
-    pub fn into_byte_stream(self) -> DynByteStream {
-        Box::pin(Wrapper(self))
+    pub fn into_byte_stream(self) -> worker::ByteStream {
+        
     }
 }
 
@@ -78,8 +76,6 @@ impl Stream for Wrapper {
         }
     }
 }
-
-impl ByteStream for Wrapper {}
 
 fn event_into_bytes(ev: S3Result<SelectObjectContentEvent>) -> Result<Bytes, SerError> {
     match ev {

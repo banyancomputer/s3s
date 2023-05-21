@@ -8,13 +8,13 @@ use std::task::{Context, Poll};
 use bytes::Bytes;
 use futures::{pin_mut, Stream, StreamExt};
 
-pub trait ByteStream: Stream {
-    fn remaining_length(&self) -> RemainingLength {
-        RemainingLength::unknown()
-    }
-}
+// pub trait ByteStream: Stream {
+//     fn remaining_length(&self) -> RemainingLength {
+//         RemainingLength::unknown()
+//     }
+// }
 
-pub type DynByteStream = Pin<Box<dyn ByteStream<Item = Result<Bytes, StdError>> + Send + Sync + 'static>>;
+pub type DynByteStream = Pin<Box<worker::ByteStream>>;
 
 pub struct RemainingLength {
     lower: usize,
@@ -97,7 +97,7 @@ impl fmt::Debug for RemainingLength {
 
 pub(crate) fn into_dyn<S, E>(s: S) -> DynByteStream
 where
-    S: ByteStream<Item = Result<Bytes, E>> + Send + Sync + Unpin + 'static,
+    S: worker::ByteStream + Send + Sync + Unpin + 'static,
     E: std::error::Error + Send + Sync + 'static,
 {
     Box::pin(Wrapper(s))
@@ -107,7 +107,7 @@ struct Wrapper<S>(S);
 
 impl<S, E> Stream for Wrapper<S>
 where
-    S: ByteStream<Item = Result<Bytes, E>> + Send + Sync + Unpin + 'static,
+    S: worker::ByteStream + Send + Sync + Unpin + 'static,
     E: std::error::Error + Send + Sync + 'static,
 {
     type Item = Result<Bytes, StdError>;
